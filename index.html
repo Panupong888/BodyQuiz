@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เกมตอบปัญหาระบบร่างกายมนุษย์</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to start to allow scrolling if content is tall */
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            position: relative; /* For absolute positioning of lives display */
+        }
+        #game-container {
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* Rounded corners */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Soft shadow */
+            padding: 2.5rem;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: relative; /* For relative positioning of elements inside */
+        }
+        h1 {
+            color: #1a202c; /* Dark text */
+            font-size: 2.25rem; /* Larger title */
+            font-weight: 700; /* Bold */
+            margin-bottom: 1.5rem;
+        }
+        h2 {
+            color: #2d3748; /* Slightly lighter dark text */
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .option-button {
+            background-color: #4299e1; /* Blue */
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem; /* Rounded corners */
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            width: 100%;
+            border: none;
+            outline: none;
+        }
+        .option-button:hover {
+            background-color: #3182ce; /* Darker blue on hover */
+            transform: translateY(-2px); /* Slight lift effect */
+        }
+        .option-button:active {
+            transform: translateY(0); /* Press effect */
+        }
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr; /* Single column on small screens */
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        @media (min-width: 640px) { /* Small screens and up */
+            .options-container {
+                grid-template-columns: 1fr 1fr; /* Two columns on larger screens */
+            }
+        }
+        #start-button, #restart-button {
+            background-color: #48bb78; /* Green */
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            border: none;
+            outline: none;
+            margin-top: 1.5rem;
+        }
+        #start-button:hover, #restart-button:hover {
+            background-color: #38a169; /* Darker green on hover */
+            transform: translateY(-2px);
+        }
+        #start-button:active, #restart-button:active {
+            transform: translateY(0);
+        }
+        #feedback-message {
+            margin-top: 1rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            min-height: 25px; /* Reserve space to prevent CLS */
+        }
+        .correct {
+            color: #38a169; /* Green for correct */
+        }
+        .incorrect {
+            color: #e53e3e; /* Red for incorrect */
+        }
+        .hidden {
+            display: none;
+        }
+        #lives-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 5px;
+            z-index: 10;
+        }
+        .heart-icon {
+            width: 30px;
+            height: 30px;
+            fill: #ef4444; /* Red color for heart */
+        }
+        .heart-icon.empty {
+            fill: #d1d5db; /* Gray color for empty heart */
+        }
+        #level-display {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 1rem;
+        }
+        #timer-display { /* New style for timer */
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 1rem;
+        }
+
+        /* Start Screen specific styles */
+        #start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Lives display -->
+        <div id="lives-display">
+            </div>
+
+        <h1>เกมตอบปัญหาระบบร่างกายมนุษย์</h1>
+
+        <!-- Start Screen -->
+        <div id="start-screen">
+            <p class="text-lg text-gray-700">ทดสอบความรู้เกี่ยวกับร่างกายมนุษย์!</p>
+            <button id="start-button" class="start-button">เริ่มเกม</button>
+        </div>
+
+        <!-- Quiz Screen (Hidden initially) -->
+        <div id="quiz-screen" class="hidden">
+            <div id="level-display">
+                </div>
+            <div id="timer-display">
+                เวลา: 10
+            </div>
+            <div id="question-display" class="text-xl font-semibold text-gray-800 mb-4">
+                </div>
+            <div id="options-container" class="options-container">
+                </div>
+            <div id="feedback-message">
+                </div>
+            <button id="next-button" class="option-button mt-6">คำถามถัดไป</button>
+        </div>
+
+        <!-- Result Area (Hidden initially) -->
+        <div id="result-area" class="hidden">
+            <h2 id="final-score-title"></h2>
+            <p id="final-score-text"></p>
+            <button id="restart-button">เล่นอีกครั้ง</button>
+        </div>
+    </div>
+
+    <script>
+        // Array of questions (will be shuffled and repeated for infinite levels)
+        const allQuestions = [
+            {
+                question: "กระดูกส่วนใดที่ใหญ่ที่สุดในร่างกายมนุษย์?",
+                options: ["กระดูกแขน", "กระดูกต้นขา (Femur)", "กระดูกหน้าอก", "กระดูกสันหลัง"],
+                answer: "กระดูกต้นขา (Femur)"
+            },
+            {
+                question: "หัวใจของมนุษย์มีกี่ห้อง?",
+                options: ["สอง", "สาม", "สี่", "ห้า"],
+                answer: "สี่"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่กรองเลือดและผลิตปัสสาวะ?",
+                options: ["ตับ", "ปอด", "ไต", "ม้าม"],
+                answer: "ไต"
+            },
+            {
+                question: "เซลล์เม็ดเลือดชนิดใดที่ทำหน้าที่ขนส่งออกซิเจน?",
+                options: ["เม็ดเลือดขาว", "เม็ดเลือดแดง", "เกล็ดเลือด", "พลาสมา"],
+                answer: "เม็ดเลือดแดง"
+            },
+            {
+                question: "ระบบใดในร่างกายที่ควบคุมการเคลื่อนไหว ความคิด และความรู้สึก?",
+                options: ["ระบบย่อยอาหาร", "ระบบไหลเวียนโลหิต", "ระบบประสาท", "ระบบโครงกระดูก"],
+                answer: "ระบบประสาท"
+            },
+            {
+                question: "กระบวนการที่ร่างกายเปลี่ยนอาหารให้เป็นพลังงานเรียกว่าอะไร?",
+                options: ["การสังเคราะห์แสง", "การหายใจ", "การเผาผลาญ (Metabolism)", "การขับถ่าย"],
+                answer: "การเผาผลาญ (Metabolism)"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่ดูดซึมสารอาหารส่วนใหญ่จากอาหารที่ย่อยแล้ว?",
+                options: ["กระเพาะอาหาร", "ลำไส้เล็ก", "ลำไส้ใหญ่", "ตับอ่อน"],
+                answer: "ลำไส้เล็ก"
+            },
+            {
+                question: "กล้ามเนื้อที่สำคัญที่สุดในการหายใจคืออะไร?",
+                options: ["กล้ามเนื้อหน้าท้อง", "กล้ามเนื้อกระบังลม (Diaphragm)", "กล้ามเนื้ออก", "กล้ามเนื้อคอ"],
+                answer: "กล้ามเนื้อกระบังลม (Diaphragm)"
+            },
+            {
+                question: "ส่วนใดของสมองที่ควบคุมการทรงตัวและการประสานงานการเคลื่อนไหว?",
+                options: ["ซีรีบรัม (Cerebrum)", "ซีรีเบลลัม (Cerebellum)", "ก้านสมอง (Brainstem)", "ไฮโปทาลามัส (Hypothalamus)"],
+                answer: "ซีรีเบลลัม (Cerebellum)"
+            },
+            {
+                question: "ต่อมไร้ท่อใดที่ผลิตอินซูลินเพื่อควบคุมระดับน้ำตาลในเลือด?",
+                options: ["ต่อมไทรอยด์", "ต่อมหมวกไต", "ตับอ่อน", "ต่อมใต้สมอง"],
+                answer: "ตับอ่อน"
+            },
+            // เพิ่มคำถามใหม่ 50 ข้อ
+            {
+                question: "อวัยวะใดที่ทำหน้าที่ผลิตน้ำดีเพื่อช่วยในการย่อยไขมัน?",
+                options: ["ตับ", "ตับอ่อน", "กระเพาะอาหาร", "ถุงน้ำดี"],
+                answer: "ตับ"
+            },
+            {
+                question: "กระดูกซี่โครงของมนุษย์มีกี่คู่?",
+                options: ["10 คู่", "11 คู่", "12 คู่", "13 คู่"],
+                answer: "12 คู่"
+            },
+            {
+                question: "ส่วนใดของตาที่ทำหน้าที่รับแสงและส่งสัญญาณไปยังสมอง?",
+                options: ["เลนส์ตา", "ม่านตา", "เรตินา (Retina)", "กระจกตา"],
+                answer: "เรตินา (Retina)"
+            },
+            {
+                question: "ฮอร์โมนใดที่เกี่ยวข้องกับการตอบสนองต่อความเครียด ('ต่อสู้หรือหนี')?",
+                options: ["อินซูลิน", "อะดรีนาลีน (Adrenaline)", "ไทรอกซิน", "เอสโตรเจน"],
+                answer: "อะดรีนาลีน (Adrenaline)"
+            },
+            {
+                question: "หลอดเลือดชนิดใดที่นำเลือดออกจากหัวใจไปยังส่วนต่างๆ ของร่างกาย?",
+                options: ["หลอดเลือดดำ", "หลอดเลือดแดง (Artery)", "หลอดเลือดฝอย", "หลอดเลือดดำใหญ่"],
+                answer: "หลอดเลือดแดง (Artery)"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่เก็บและย่อยอาหารในเบื้องต้น?",
+                options: ["ลำไส้เล็ก", "ลำไส้ใหญ่", "กระเพาะอาหาร", "หลอดอาหาร"],
+                answer: "กระเพาะอาหาร"
+            },
+            {
+                question: "ส่วนใดของสมองที่ควบคุมการหายใจและการเต้นของหัวใจโดยอัตโนมัติ?",
+                options: ["ซีรีบรัม", "ซีรีเบลลัม", "ก้านสมอง (Brainstem)", "ไฮโปทาลามัส"],
+                answer: "ก้านสมอง (Brainstem)"
+            },
+            {
+                question: "เซลล์เม็ดเลือดชนิดใดที่ทำหน้าที่ต่อสู้กับการติดเชื้อ?",
+                options: ["เม็ดเลือดแดง", "เม็ดเลือดขาว (White blood cell)", "เกล็ดเลือด", "พลาสมา"],
+                answer: "เม็ดเลือดขาว (White blood cell)"
+            },
+            {
+                question: "กระบวนการที่พืชเปลี่ยนแสงแดดเป็นพลังงานเรียกว่าการสังเคราะห์แสง แล้วในร่างกายมนุษย์ การสร้างพลังงานหลักจากกลูโคสเรียกว่าอะไร?",
+                options: ["การหายใจระดับเซลล์ (Cellular Respiration)", "การหมัก", "การสังเคราะห์โปรตีน", "การดูดซึม"],
+                answer: "การหายใจระดับเซลล์ (Cellular Respiration)"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่กรองของเสียออกจากเลือดและรักษาสมดุลของน้ำและเกลือแร่?",
+                options: ["ตับ", "ปอด", "ไต", "ม้าม"],
+                answer: "ไต"
+            },
+            {
+                question: "กระดูกสันหลังของมนุษย์ประกอบด้วยกระดูกกี่ชิ้น (ในผู้ใหญ่)?",
+                options: ["24", "26", "33", "30"],
+                answer: "26"
+            },
+            {
+                question: "ส่วนใดของหูที่ทำหน้าที่เปลี่ยนคลื่นเสียงเป็นสัญญาณประสาท?",
+                options: ["หูชั้นนอก", "หูชั้นกลาง", "หูชั้นใน (Cochlea)", "แก้วหู"],
+                answer: "หูชั้นใน (Cochlea)"
+            },
+            {
+                question: "ฮอร์โมนใดที่ควบคุมการดูดซึมแคลเซียมและฟอสเฟตในร่างกาย?",
+                options: ["ไทรอกซิน", "พาราไทรอยด์ฮอร์โมน (Parathyroid hormone)", "อินซูลิน", "คอร์ติซอล"],
+                answer: "พาราไทรอยด์ฮอร์โมน (Parathyroid hormone)"
+            },
+            {
+                question: "หลอดเลือดชนิดใดที่มีผนังบางที่สุดและเป็นที่แลกเปลี่ยนแก๊สและสารอาหาร?",
+                options: ["หลอดเลือดแดง", "หลอดเลือดดำ", "หลอดเลือดฝอย (Capillary)", "หลอดเลือดแดงใหญ่"],
+                answer: "หลอดเลือดฝอย (Capillary)"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่ดูดซึมน้ำและเกลือแร่ที่เหลือจากอาหารที่ย่อยแล้ว?",
+                options: ["กระเพาะอาหาร", "ลำไส้เล็ก", "ลำไส้ใหญ่", "ตับอ่อน"],
+                answer: "ลำไส้ใหญ่"
+            },
+            {
+                question: "ส่วนใดของสมองที่ทำหน้าที่เป็นศูนย์ควบคุมอุณหภูมิร่างกาย ความหิว และความกระหาย?",
+                options: ["ซีรีบรัม", "ซีรีเบลลัม", "ก้านสมอง", "ไฮโปทาลามัส (Hypothalamus)"],
+                answer: "ไฮโปทาลามัส (Hypothalamus)"
+            },
+            {
+                question: "เซลล์ชนิดใดในร่างกายที่ทำหน้าที่ส่งกระแสประสาท?",
+                options: ["เซลล์กล้ามเนื้อ", "เซลล์ผิวหนัง", "เซลล์ประสาท (Neuron)", "เซลล์เม็ดเลือด"],
+                answer: "เซลล์ประสาท (Neuron)"
+            },
+            {
+                question: "กระบวนการที่ร่างกายกำจัดของเสียออกจากเลือดเรียกว่าอะไร?",
+                options: ["การย่อยอาหาร", "การหายใจ", "การขับถ่าย (Excretion)", "การไหลเวียนโลหิต"],
+                answer: "การขับถ่าย (Excretion)"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่ผลิตเม็ดเลือดแดงในผู้ใหญ่?",
+                options: ["ตับ", "ม้าม", "ไขกระดูก (Bone Marrow)", "ไต"],
+                answer: "ไขกระดูก (Bone Marrow)"
+            },
+            {
+                question: "กระดูกส่วนใดที่ประกอบเป็นกะโหลกศีรษะ?",
+                options: ["กระดูกต้นคอ", "กระดูกหน้าผาก", "กระดูกขากรรไกร", "กระดูกกะโหลก (Cranium)"],
+                answer: "กระดูกกะโหลก (Cranium)"
+            },
+            {
+                question: "ส่วนใดของตาที่ทำหน้าที่ควบคุมปริมาณแสงที่เข้าสู่ดวงตา?",
+                options: ["เลนส์ตา", "ม่านตา (Iris)", "รูม่านตา", "กระจกตา"],
+                answer: "ม่านตา (Iris)"
+            },
+            {
+                question: "ฮอร์โมนใดที่ผลิตจากต่อมหมวกไตและเกี่ยวข้องกับการตอบสนองต่อความเครียดระยะยาว?",
+                options: ["อินซูลิน", "อะดรีนาลีน", "คอร์ติซอล (Cortisol)", "เอสโตรเจน"],
+                answer: "คอร์ติซอล (Cortisol)"
+            },
+            {
+                question: "หลอดเลือดใดที่นำเลือดที่มีออกซิเจนสูงจากปอดกลับเข้าสู่หัวใจ?",
+                options: ["หลอดเลือดแดงใหญ่", "หลอดเลือดดำใหญ่", "หลอดเลือดดำปอด (Pulmonary Vein)", "หลอดเลือดแดงปอด"],
+                answer: "หลอดเลือดดำปอด (Pulmonary Vein)"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่หลักในการดูดซึมแอลกอฮอล์?",
+                options: ["กระเพาะอาหาร", "ลำไส้เล็ก", "ตับ", "ไต"],
+                answer: "กระเพาะอาหาร"
+            },
+            {
+                question: "ส่วนใดของสมองที่เกี่ยวข้องกับการเรียนรู้ ความจำ และการคิด?",
+                options: ["ซีรีบรัม (Cerebrum)", "ซีรีเบลลัม", "ก้านสมอง", "ไฮโปทาลามัส"],
+                answer: "ซีรีบรัม (Cerebrum)"
+            },
+            {
+                question: "โครงสร้างใดในปอดที่ทำหน้าที่แลกเปลี่ยนแก๊สออกซิเจนและคาร์บอนไดออกไซด์?",
+                options: ["หลอดลม", "หลอดลมฝอย", "ถุงลมปอด (Alveoli)", "เยื่อหุ้มปอด"],
+                answer: "ถุงลมปอด (Alveoli)"
+            },
+            {
+                question: "ต่อมไร้ท่อใดที่ผลิตฮอร์โมนการเจริญเติบโต?",
+                options: ["ต่อมไทรอยด์", "ต่อมใต้สมอง (Pituitary Gland)", "ต่อมหมวกไต", "ตับอ่อน"],
+                answer: "ต่อมใต้สมอง (Pituitary Gland)"
+            },
+            {
+                question: "ส่วนใดของฟันที่แข็งที่สุดในร่างกาย?",
+                options: ["เนื้อฟัน", "เคลือบฟัน (Enamel)", "รากฟัน", "โพรงประสาทฟัน"],
+                answer: "เคลือบฟัน (Enamel)"
+            },
+            {
+                question: "กล้ามเนื้อชนิดใดที่พบในผนังอวัยวะภายใน เช่น กระเพาะอาหารและลำไส้?",
+                options: ["กล้ามเนื้อลาย", "กล้ามเนื้อหัวใจ", "กล้ามเนื้อเรียบ (Smooth muscle)", "กล้ามเนื้อโครงร่าง"],
+                answer: "กล้ามเนื้อเรียบ (Smooth muscle)"
+            },
+            {
+                question: "วิตามินใดที่จำเป็นต่อการแข็งตัวของเลือด?",
+                options: ["วิตามิน A", "วิตามิน B", "วิตามิน C", "วิตามิน K"],
+                answer: "วิตามิน K"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่เป็น 'ธนาคารเลือด' ของร่างกายและกำจัดเซลล์เม็ดเลือดแดงที่หมดอายุ?",
+                options: ["ตับ", "ไต", "ม้าม (Spleen)", "ตับอ่อน"],
+                answer: "ม้าม (Spleen)"
+            },
+            {
+                question: "ส่วนใดของผิวหนังที่ทำหน้าที่ผลิตเม็ดสีเมลานิน?",
+                options: ["หนังกำพร้า (Epidermis)", "หนังแท้", "ชั้นไขมัน", "ต่อมเหงื่อ"],
+                answer: "หนังกำพร้า (Epidermis)"
+            },
+            {
+                question: "ข้อต่อชนิดใดที่เคลื่อนไหวได้มากที่สุดในร่างกาย เช่น ข้อไหล่และข้อสะโพก?",
+                options: ["ข้อพับ", "ข้อบานพับ", "ข้อต่อแบบลูกกลมและเบ้า (Ball-and-socket joint)", "ข้อต่อแบบเลื่อน"],
+                answer: "ข้อต่อแบบลูกกลมและเบ้า (Ball-and-socket joint)"
+            },
+            {
+                question: "ระบบใดในร่างกายที่ทำหน้าที่ป้องกันร่างกายจากเชื้อโรคและสิ่งแปลกปลอม?",
+                options: ["ระบบย่อยอาหาร", "ระบบไหลเวียนโลหิต", "ระบบภูมิคุ้มกัน (Immune System)", "ระบบประสาท"],
+                answer: "ระบบภูมิคุ้มกัน (Immune System)"
+            },
+            {
+                question: "เส้นประสาทคู่ที่ 12 ในสมอง (Cranial Nerve XII) ควบคุมการเคลื่อนไหวของอวัยวะใด?",
+                options: ["ตา", "หู", "ลิ้น", "ใบหน้า"],
+                answer: "ลิ้น"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่เป็น 'ตัวควบคุมหลัก' ของระบบต่อมไร้ท่อ?",
+                options: ["ต่อมไทรอยด์", "ต่อมใต้สมอง (Pituitary Gland)", "ต่อมหมวกไต", "ตับอ่อน"],
+                answer: "ต่อมใต้สมอง (Pituitary Gland)"
+            },
+            {
+                question: "กระบวนการที่ร่างกายรักษาสมดุลภายใน เช่น อุณหภูมิ pH และระดับน้ำตาล เรียกว่าอะไร?",
+                options: ["เมแทบอลิซึม", "โฮมีโอสเตซิส (Homeostasis)", "การขับถ่าย", "การดูดซึม"],
+                answer: "โฮมีโอสเตซิส (Homeostasis)"
+            },
+            {
+                question: "ส่วนใดของไตที่ทำหน้าที่รวบรวมปัสสาวะก่อนส่งไปยังท่อไต?",
+                options: ["โกลเมอรูลัส", "ท่อหน่วยไต", "กรวยไต (Renal Pelvis)", "หลอดเลือดฝอย"],
+                answer: "กรวยไต (Renal Pelvis)"
+            },
+            {
+                question: "ฮอร์โมนใดที่ช่วยในการควบคุมวงจรการนอนหลับ-ตื่น?",
+                options: ["อินซูลิน", "เมลาโทนิน (Melatonin)", "อะดรีนาลีน", "ไทรอกซิน"],
+                answer: "เมลาโทนิน (Melatonin)"
+            },
+            {
+                question: "กระดูกชิ้นเล็กที่สุดในร่างกายอยู่ที่ใด?",
+                options: ["มือ", "เท้า", "หู (กระดูกโกลน/Stapes)", "จมูก"],
+                answer: "หู (กระดูกโกลน/Stapes)"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่ผลิตเซลล์สเปิร์มในเพศชาย?",
+                options: ["ต่อมลูกหมาก", "อัณฑะ (Testes)", "ถุงอัณฑะ", "ท่ออสุจิ"],
+                answer: "อัณฑะ (Testes)"
+            },
+            {
+                question: "ส่วนใดของสมองที่ควบคุมการมองเห็น?",
+                options: ["สมองส่วนหน้า (Frontal Lobe)", "สมองส่วนข้าง (Parietal Lobe)", "สมองส่วนหลัง (Occipital Lobe)", "สมองส่วนขมับ (Temporal Lobe)"],
+                answer: "สมองส่วนหลัง (Occipital Lobe)"
+            },
+            {
+                question: "กล้ามเนื้อชนิดใดที่พบเฉพาะในหัวใจ?",
+                options: ["กล้ามเนื้อลาย", "กล้ามเนื้อเรียบ", "กล้ามเนื้อหัวใจ (Cardiac muscle)", "กล้ามเนื้อโครงร่าง"],
+                answer: "กล้ามเนื้อหัวใจ (Cardiac muscle)"
+            },
+            {
+                question: "วิตามินใดที่ร่างกายสามารถสร้างได้เมื่อได้รับแสงแดด?",
+                options: ["วิตามิน A", "วิตามิน C", "วิตามิน D", "วิตามิน E"],
+                answer: "วิตามิน D"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่ผลิตอินซูลินและกลูคากอน?",
+                options: ["ตับ", "ไต", "ตับอ่อน (Pancreas)", "ต่อมไทรอยด์"],
+                answer: "ตับอ่อน (Pancreas)"
+            },
+            {
+                question: "ระบบใดในร่างกายที่ทำหน้าที่ขนส่งออกซิเจน สารอาหาร และฮอร์โมน?",
+                options: ["ระบบย่อยอาหาร", "ระบบไหลเวียนโลหิต (Circulatory System)", "ระบบประสาท", "ระบบขับถ่าย"],
+                answer: "ระบบไหลเวียนโลหิต (Circulatory System)"
+            },
+            {
+                question: "เส้นประสาทคู่ที่ 10 ในสมอง (Cranial Nerve X) หรือที่เรียกว่า 'Vagus Nerve' ควบคุมการทำงานของอวัยวะใดเป็นหลัก?",
+                options: ["การมองเห็น", "การได้ยิน", "การย่อยอาหารและอัตราการเต้นของหัวใจ", "การดมกลิ่น"],
+                answer: "การย่อยอาหารและอัตราการเต้นของหัวใจ"
+            },
+            {
+                question: "กระดูกส่วนใดที่ทำหน้าที่ปกป้องสมอง?",
+                options: ["กระดูกสันหลัง", "กระดูกซี่โครง", "กะโหลกศีรษะ (Skull)", "กระดูกเชิงกราน"],
+                answer: "กะโหลกศีรษะ (Skull)"
+            },
+            {
+                question: "ส่วนใดของตาที่ทำหน้าที่ปรับความโค้งของเลนส์เพื่อโฟกัสภาพ?",
+                options: ["กระจกตา", "ม่านตา", "เลนส์ตา (Lens)", "เรตินา"],
+                answer: "เลนส์ตา (Lens)"
+            },
+            {
+                question: "ฮอร์โมนใดที่ผลิตโดยต่อมไทรอยด์และควบคุมอัตราการเผาผลาญของร่างกาย?",
+                options: ["อินซูลิน", "อะดรีนาลีน", "ไทรอกซิน (Thyroxine)", "เอสโตรเจน"],
+                answer: "ไทรอกซิน (Thyroxine)"
+            },
+            {
+                question: "หลอดเลือดใดที่นำเลือดที่มีคาร์บอนไดออกไซด์สูงจากร่างกายกลับเข้าสู่หัวใจ?",
+                options: ["หลอดเลือดแดง", "หลอดเลือดดำ (Vein)", "หลอดเลือดฝอย", "หลอดเลือดแดงใหญ่"],
+                answer: "หลอดเลือดดำ (Vein)"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่ดูดซึมสารอาหารหลักส่วนใหญ่ เช่น คาร์โบไฮเดรต โปรตีน และไขมัน?",
+                options: ["กระเพาะอาหาร", "ลำไส้เล็ก (Small Intestine)", "ลำไส้ใหญ่", "หลอดอาหาร"],
+                answer: "ลำไส้เล็ก (Small Intestine)"
+            },
+            {
+                question: "ส่วนใดของสมองที่ควบคุมการได้ยินและความเข้าใจภาษา?",
+                options: ["สมองส่วนหน้า", "สมองส่วนข้าง", "สมองส่วนหลัง", "สมองส่วนขมับ (Temporal Lobe)"],
+                answer: "สมองส่วนขมับ (Temporal Lobe)"
+            },
+            {
+                question: "กระบวนการที่ร่างกายขับเหงื่อเพื่อควบคุมอุณหภูมิเรียกว่าอะไร?",
+                options: ["การหายใจ", "การขับถ่าย", "การระเหย", "การควบคุมอุณหภูมิ (Thermoregulation)"],
+                answer: "การควบคุมอุณหภูมิ (Thermoregulation)"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่ผลิตน้ำลายเพื่อช่วยในการย่อยอาหารเบื้องต้น?",
+                options: ["ลิ้น", "ต่อมน้ำลาย (Salivary Glands)", "กระเพาะอาหาร", "ตับอ่อน"],
+                answer: "ต่อมน้ำลาย (Salivary Glands)"
+            },
+            {
+                question: "กระดูกส่วนใดที่ทำหน้าที่ปกป้องปอดและหัวใจ?",
+                options: ["กระดูกสันหลัง", "กระดูกเชิงกราน", "กระดูกซี่โครง (Rib Cage)", "กะโหลกศีรษะ"],
+                answer: "กระดูกซี่โครง (Rib Cage)"
+            },
+            {
+                question: "ส่วนใดของหูที่ทำหน้าที่รักษาสมดุลของร่างกาย?",
+                options: ["หูชั้นนอก", "หูชั้นกลาง", "หูชั้นใน (Vestibular System)", "แก้วหู"],
+                answer: "หูชั้นใน (Vestibular System)"
+            },
+            {
+                question: "ฮอร์โมนใดที่ผลิตจากต่อมหมวกไตและช่วยในการควบคุมระดับน้ำตาลในเลือดและภูมิคุ้มกัน?",
+                options: ["อินซูลิน", "อะดรีนาลีน", "คอร์ติซอล (Cortisol)", "เอสโตรเจน"],
+                answer: "คอร์ติซอล (Cortisol)"
+            },
+            {
+                question: "หลอดเลือดใดที่เชื่อมต่อหลอดเลือดแดงและหลอดเลือดดำและเป็นที่แลกเปลี่ยนสารอาหารและของเสีย?",
+                options: ["หลอดเลือดแดงใหญ่", "หลอดเลือดดำใหญ่", "หลอดเลือดฝอย (Capillary)", "หลอดเลือดแดง"],
+                answer: "หลอดเลือดฝอย (Capillary)"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่ผลิตเอนไซม์ย่อยอาหารและฮอร์โมนอินซูลิน?",
+                options: ["ตับ", "ตับอ่อน (Pancreas)", "กระเพาะอาหาร", "ถุงน้ำดี"],
+                answer: "ตับอ่อน (Pancreas)"
+            },
+            {
+                question: "ระบบใดในร่างกายที่ทำหน้าที่ควบคุมการตอบสนองแบบ 'ต่อสู้หรือหนี'?",
+                options: ["ระบบประสาทพาราซิมพาเทติก", "ระบบประสาทซิมพาเทติก (Sympathetic Nervous System)", "ระบบประสาทส่วนกลาง", "ระบบประสาทโซมาติก"],
+                answer: "ระบบประสาทซิมพาเทติก (Sympathetic Nervous System)"
+            },
+            {
+                question: "เซลล์เม็ดเลือดชนิดใดที่ทำหน้าที่ช่วยในการแข็งตัวของเลือด?",
+                options: ["เม็ดเลือดแดง", "เม็ดเลือดขาว", "เกล็ดเลือด (Platelets)", "พลาสมา"],
+                answer: "เกล็ดเลือด (Platelets)"
+            },
+            {
+                question: "กระบวนการที่ร่างกายนำออกซิเจนจากอากาศเข้าสู่เลือดและขับคาร์บอนไดออกไซด์ออกไปเรียกว่าอะไร?",
+                options: ["การย่อยอาหาร", "การหายใจ (Respiration)", "การไหลเวียนโลหิต", "การขับถ่าย"],
+                answer: "การหายใจ (Respiration)"
+            }
+        ];
+
+        let currentQuestions = []; // Array to hold shuffled questions for current game cycle
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let lives = 3; // Initial current lives
+        let maxLives = 3; // Initial maximum lives
+        let currentLevel = 1; // Initial level
+        let quizActive = false; // To prevent multiple clicks while checking answer
+        let timerInterval; // Variable to hold the timer interval
+        let timeLeft; // Variable to hold time left for the current question
+        const TIME_PER_QUESTION = 10; // 10 seconds per question
+
+        // Get DOM elements
+        const gameContainer = document.getElementById('game-container');
+        const startScreen = document.getElementById('start-screen');
+        const startButton = document.getElementById('start-button');
+        const quizScreen = document.getElementById('quiz-screen');
+        const levelDisplay = document.getElementById('level-display');
+        const timerDisplay = document.getElementById('timer-display'); // Get timer display element
+        const questionDisplay = document.getElementById('question-display');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const nextButton = document.getElementById('next-button');
+        const resultArea = document.getElementById('result-area');
+        const finalScoreTitle = document.getElementById('final-score-title');
+        const finalScoreText = document.getElementById('final-score-text');
+        const restartButton = document.getElementById('restart-button');
+        const livesDisplay = document.getElementById('lives-display');
+        // Removed tempMessageDisplay as it's no longer needed for bonus choice
+        // const tempMessageDisplay = document.getElementById('temp-message'); 
+
+        // Removed levelUpChoiceModal and its buttons
+        // const levelUpChoiceModal = document.getElementById('level-up-choice-modal');
+        // const choiceHeartPotionButton = document.getElementById('choice-heart-potion');
+        // const choiceMaxHeartPotionButton = document.getElementById('choice-max-heart-potion');
+
+        // Initialize Tone.js for sound effects
+        let correctSound;
+        let incorrectSound;
+        let gameOverSound;
+        let timerTickSound; // Sound for timer ticking
+        let levelUpSound; // Sound for level up choice (still useful for general level up)
+
+        // Await Tone.start() to ensure audio context is ready.
+        // This is necessary because browsers require user interaction to start audio.
+        document.documentElement.addEventListener('click', () => {
+            if (Tone.context.state !== 'running') {
+                Tone.start();
+                console.log('AudioContext started');
+            }
+        });
+
+        // Initialize sound synthesizers
+        correctSound = new Tone.Synth({
+            oscillator: { type: "triangle" },
+            envelope: {
+                attack: 0.005,
+                decay: 0.1,
+                sustain: 0.1,
+                release: 0.2
+            }
+        }).toDestination();
+
+        incorrectSound = new Tone.Synth({
+            oscillator: { type: "sawtooth" },
+            envelope: {
+                attack: 0.01,
+                decay: 0.2,
+                sustain: 0.05,
+                release: 0.3
+            }
+        }).toDestination();
+
+        gameOverSound = new Tone.Synth({
+            oscillator: { type: "sine" },
+            envelope: {
+                attack: 0.1,
+                decay: 0.5,
+                sustain: 0.2,
+                release: 1.0
+            }
+        }).toDestination();
+
+        timerTickSound = new Tone.Synth({ // Simple tick sound
+            oscillator: { type: "square" },
+            envelope: {
+                attack: 0.001,
+                decay: 0.05,
+                sustain: 0.01,
+                release: 0.05
+            }
+        }).toDestination();
+
+        levelUpSound = new Tone.Synth({ // Sound for level up
+            oscillator: { type: "sine" },
+            envelope: {
+                attack: 0.05,
+                decay: 0.2,
+                sustain: 0.1,
+                release: 0.5
+            }
+        }).toDestination();
+
+
+        // Event Listeners
+        startButton.addEventListener('click', startGame);
+        nextButton.addEventListener('click', loadNextQuestion);
+        restartButton.addEventListener('click', startGame);
+        // Removed event listeners for choice buttons
+
+        // Helper function to shuffle an array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+            }
+            return array;
+        }
+
+        // Function to start the game
+        function startGame() {
+            currentQuestionIndex = 0;
+            score = 0;
+            lives = 3; // Reset current lives
+            maxLives = 3; // Initial maximum lives (can increase with bonuses)
+            currentLevel = 1; // Reset level
+            quizActive = true;
+
+            // Clear any existing timer
+            clearInterval(timerInterval);
+
+            // Prepare questions for the game session by shuffling all available questions
+            currentQuestions = shuffleArray([...allQuestions]); // Create a shallow copy and shuffle
+
+            // Hide start screen, show quiz screen
+            startScreen.classList.add('hidden'); // Hide the start screen
+            quizScreen.classList.remove('hidden'); // Show the quiz screen
+            resultArea.classList.add('hidden'); // Ensure result area is hidden
+            nextButton.classList.add('hidden'); // Hide next button initially
+            feedbackMessage.textContent = ''; // Clear previous feedback
+            // Removed tempMessageDisplay hide/clear
+
+            // Removed levelUpChoiceModal hide/display none
+
+            updateLivesDisplay(); // Update hearts display
+            updateLevelDisplay(); // Update level display
+            loadQuestion();
+        }
+
+        // Function to update the lives display (heart icons)
+        function updateLivesDisplay() {
+            livesDisplay.innerHTML = ''; // Clear existing hearts
+            for (let i = 0; i < maxLives; i++) { // Render up to maxLives hearts
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                svg.setAttribute("viewBox", "0 0 24 24");
+                svg.classList.add("heart-icon");
+                if (i >= lives) { // If index is greater than or equal to current lives, it's empty
+                    svg.classList.add("empty");
+                }
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z");
+                svg.appendChild(path);
+                livesDisplay.appendChild(svg);
+            }
+        }
+
+        // Function to update the level display
+        function updateLevelDisplay() {
+            levelDisplay.textContent = `เลเวล: ${currentLevel}`;
+        }
+
+        // Function to start the question timer
+        function startQuestionTimer() {
+            clearInterval(timerInterval); // Clear any existing timer
+            timeLeft = TIME_PER_QUESTION;
+            timerDisplay.textContent = `เวลา: ${timeLeft}`;
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `เวลา: ${timeLeft}`;
+
+                if (timeLeft <= 3 && timeLeft > 0) { // Play a warning tick for last 3 seconds
+                    timerTickSound.triggerAttackRelease("C4", "32n");
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    // Treat as incorrect answer when time runs out
+                    checkAnswer(null, currentQuestions[currentQuestionIndex].answer); // Pass null for selectedOption
+                }
+            }, 1000);
+        }
+
+        // Function to load a question
+        function loadQuestion() {
+            // If all questions in the current shuffled array are used, reshuffle for infinite levels
+            if (currentQuestionIndex >= currentQuestions.length) {
+                currentQuestions = shuffleArray([...allQuestions]); // Reshuffle all questions
+                currentQuestionIndex = 0; // Reset index for the new set
+            }
+
+            const q = currentQuestions[currentQuestionIndex];
+            questionDisplay.textContent = q.question; // Set question text
+            optionsContainer.innerHTML = ''; // Clear previous options
+            feedbackMessage.textContent = ''; // Clear feedback
+            nextButton.classList.add('hidden'); // Hide next button
+            // Removed tempMessageDisplay hide/clear
+
+
+            // Create and append option buttons
+            q.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-button');
+                button.addEventListener('click', () => checkAnswer(option, q.answer));
+                optionsContainer.appendChild(button);
+            });
+
+            // Enable quiz interaction
+            quizActive = true;
+            enableOptions();
+            startQuestionTimer(); // Start the timer for the new question
+        }
+
+        // Function to check the selected answer
+        function checkAnswer(selectedOption, correctAnswer) {
+            if (!quizActive) return; // Prevent multiple clicks
+
+            clearInterval(timerInterval); // Stop the timer when an answer is submitted
+            quizActive = false; // Disable further clicks for this question
+            disableOptions(); // Disable all option buttons
+
+            if (selectedOption === correctAnswer) {
+                score++;
+                feedbackMessage.textContent = 'ถูกต้อง!';
+                feedbackMessage.classList.remove('incorrect');
+                feedbackMessage.classList.add('correct');
+                correctSound.triggerAttackRelease("C5", "8n"); // Play correct sound
+
+                // Increment level on correct answer
+                currentLevel++;
+                updateLevelDisplay();
+
+                // Check for level-up bonus (automatic life gain)
+                if (currentLevel % 5 === 0 && currentLevel > 0) {
+                    lives = Math.min(lives + 1, maxLives); // Restore 1 heart, not exceeding maxLives
+                    updateLivesDisplay(); // Update heart display
+                    feedbackMessage.textContent = `ถูกต้อง! และคุณได้รับหัวใจเพิ่ม 1 ดวง!`; // Combined feedback
+                    levelUpSound.triggerAttackRelease("G5", "8n"); // Play level up sound
+                }
+                nextButton.classList.remove('hidden'); // Show next button
+
+            } else {
+                lives--; // Decrement life on incorrect answer
+                updateLivesDisplay(); // Update heart display
+                feedbackMessage.textContent = `ผิด! คำตอบที่ถูกต้องคือ: ${correctAnswer}`;
+                feedbackMessage.classList.remove('correct');
+                feedbackMessage.classList.add('incorrect');
+                incorrectSound.triggerAttackRelease("C3", "8n"); // Play incorrect sound
+
+                if (lives <= 0) {
+                    gameOver(); // Game over if no lives left
+                    return; // Stop further execution
+                }
+                nextButton.classList.remove('hidden'); // Show next button
+            }
+        }
+
+        // Function to load the next question
+        function loadNextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        // Function to disable all option buttons
+        function disableOptions() {
+            const buttons = optionsContainer.querySelectorAll('.option-button');
+            buttons.forEach(button => {
+                button.disabled = true;
+                button.style.opacity = '0.7';
+                button.style.cursor = 'not-allowed';
+            });
+        }
+
+        // Function to enable all option buttons
+        function enableOptions() {
+            const buttons = optionsContainer.querySelectorAll('.option-button');
+            buttons.forEach(button => {
+                button.disabled = false;
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
+            });
+        }
+
+        // Function to handle game over
+        function gameOver() {
+            clearInterval(timerInterval); // Ensure timer is stopped on game over
+            quizScreen.classList.add('hidden'); // Hide quiz screen
+            resultArea.classList.remove('hidden'); // Show result area
+            gameOverSound.triggerAttackRelease("C2", "1n"); // Play game over sound
+            // Removed tempMessageDisplay hide/clear
+
+
+            finalScoreTitle.textContent = 'Game Over!';
+            finalScoreText.textContent = `คุณทำได้ ${score} คะแนน และผ่าน ${currentLevel -1} เลเวล`; // Current level is already incremented for next, so -1 here
+            // Reset level, score, lives for next game is handled in startGame
+        }
+
+        // Removed Level Up Choice Functions
+
+        // Initial state: show start button, hide quiz and result screens
+        document.addEventListener('DOMContentLoaded', () => {
+            startScreen.classList.remove('hidden'); // Show start screen
+            quizScreen.classList.add('hidden'); // Hide quiz screen
+            resultArea.classList.add('hidden'); // Hide result area
+            // Removed levelUpChoiceModal hide/display none
+            // Removed tempMessageDisplay hide
+
+            updateLivesDisplay(); // Initialize heart display
+            updateLevelDisplay(); // Initialize level display
+            timerDisplay.textContent = `เวลา: ${TIME_PER_QUESTION}`; // Set initial timer display
+        });
+
+    </script>
+</body>
+</html>
