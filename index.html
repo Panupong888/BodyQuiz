@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เกมตอบปัญหาระบบร่างกายมนุษย์</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to start to allow scrolling if content is tall */
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            position: relative; /* For absolute positioning of lives display */
+        }
+        #game-container {
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* Rounded corners */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* Soft shadow */
+            padding: 2.5rem;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: relative; /* For relative positioning of elements inside */
+        }
+        h1 {
+            color: #1a202c; /* Dark text */
+            font-size: 2.25rem; /* Larger title */
+            font-weight: 700; /* Bold */
+            margin-bottom: 1.5rem;
+        }
+        h2 {
+            color: #2d3748; /* Slightly lighter dark text */
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .option-button {
+            background-color: #4299e1; /* Blue */
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem; /* Rounded corners */
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            width: 100%;
+            border: none;
+            outline: none;
+        }
+        .option-button:hover {
+            background-color: #3182ce; /* Darker blue on hover */
+            transform: translateY(-2px); /* Slight lift effect */
+        }
+        .option-button:active {
+            transform: translateY(0); /* Press effect */
+        }
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr; /* Single column on small screens */
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        @media (min-width: 640px) { /* Small screens and up */
+            .options-container {
+                grid-template-columns: 1fr 1fr; /* Two columns on larger screens */
+            }
+        }
+        #start-button, #restart-button {
+            background-color: #48bb78; /* Green */
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            border: none;
+            outline: none;
+            margin-top: 1.5rem;
+        }
+        #start-button:hover, #restart-button:hover {
+            background-color: #38a169; /* Darker green on hover */
+            transform: translateY(-2px);
+        }
+        #start-button:active, #restart-button:active {
+            transform: translateY(0);
+        }
+        #feedback-message {
+            margin-top: 1rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            min-height: 25px; /* Reserve space to prevent CLS */
+        }
+        .correct {
+            color: #38a169; /* Green for correct */
+        }
+        .incorrect {
+            color: #e53e3e; /* Red for incorrect */
+        }
+        .hidden {
+            display: none;
+        }
+        #lives-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 5px;
+            z-index: 10;
+        }
+        .heart-icon {
+            width: 30px;
+            height: 30px;
+            fill: #ef4444; /* Red color for heart */
+        }
+        .heart-icon.empty {
+            fill: #d1d5db; /* Gray color for empty heart */
+        }
+        #level-display {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 1rem;
+        }
+        #timer-display { /* New style for timer */
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 1rem;
+        }
+
+        /* Start Screen specific styles */
+        #start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="lives-display">
+            </div>
+
+        <h1>เกมตอบปัญหาระบบร่างกายมนุษย์</h1>
+
+        <div id="start-screen">
+            <p class="text-lg text-gray-700">ทดสอบความรู้เกี่ยวกับร่างกายมนุษย์!</p>
+            <button id="start-button" class="start-button">เริ่มเกม</button>
+        </div>
+
+        <div id="quiz-screen" class="hidden">
+            <div id="level-display">
+                </div>
+            <div id="timer-display">
+                เวลา: 10
+            </div>
+            <div id="question-display" class="text-xl font-semibold text-gray-800 mb-4">
+                </div>
+            <div id="options-container" class="options-container">
+                </div>
+            <div id="feedback-message">
+                </div>
+            <button id="next-button" class="option-button mt-6">คำถามถัดไป</button>
+        </div>
+
+        <div id="result-area" class="hidden">
+            <h2 id="final-score-title"></h2>
+            <p id="final-score-text"></p>
+            <button id="restart-button">เล่นอีกครั้ง</button>
+        </div>
+    </div>
+
+    <script>
+        // Array of questions (will be shuffled and repeated for infinite levels)
+        const allQuestions = [
+            {
+                question: "กระดูกส่วนใดที่ใหญ่ที่สุดในร่างกายมนุษย์?",
+                options: ["กระดูกแขน", "กระดูกต้นขา (Femur)", "กระดูกหน้าอก", "กระดูกสันหลัง"],
+                answer: "กระดูกต้นขา (Femur)"
+            },
+            {
+                question: "หัวใจของมนุษย์มีกี่ห้อง?",
+                options: ["สอง", "สาม", "สี่", "ห้า"],
+                answer: "สี่"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่กรองเลือดและผลิตปัสสาวะ?",
+                options: ["ตับ", "ปอด", "ไต", "ม้าม"],
+                answer: "ไต"
+            },
+            {
+                question: "เซลล์เม็ดเลือดชนิดใดที่ทำหน้าที่ขนส่งออกซิเจน?",
+                options: ["เม็ดเลือดขาว", "เม็ดเลือดแดง", "เกล็ดเลือด", "พลาสมา"],
+                answer: "เม็ดเลือดแดง"
+            },
+            {
+                question: "ระบบใดในร่างกายที่ควบคุมการเคลื่อนไหว ความคิด และความรู้สึก?",
+                options: ["ระบบย่อยอาหาร", "ระบบไหลเวียนโลหิต", "ระบบประสาท", "ระบบโครงกระดูก"],
+                answer: "ระบบประสาท"
+            },
+            {
+                question: "กระบวนการที่ร่างกายเปลี่ยนอาหารให้เป็นพลังงานเรียกว่าอะไร?",
+                options: ["การสังเคราะห์แสง", "การหายใจ", "การเผาผลาญ (Metabolism)", "การขับถ่าย"],
+                answer: "การเผาผลาญ (Metabolism)"
+            },
+            {
+                question: "อวัยวะใดที่ทำหน้าที่ดูดซึมสารอาหารส่วนใหญ่จากอาหารที่ย่อยแล้ว?",
+                options: ["กระเพาะอาหาร", "ลำไส้เล็ก", "ลำไส้ใหญ่", "ตับอ่อน"],
+                answer: "ลำไส้เล็ก"
+            },
+            {
+                question: "กล้ามเนื้อที่สำคัญที่สุดในการหายใจคืออะไร?",
+                options: ["กล้ามเนื้อหน้าท้อง", "กล้ามเนื้อกระบังลม (Diaphragm)", "กล้ามเนื้ออก", "กล้ามเนื้อคอ"],
+                answer: "กล้ามเนื้อกระบังลม (Diaphragm)"
+            },
+            {
+                question: "ส่วนใดของสมองที่ควบคุมการทรงตัวและการประสานงานการเคลื่อนไหว?",
+                options: ["ซีรีบรัม (Cerebrum)", "ซีรีเบลลัม (Cerebellum)", "ก้านสมอง (Brainstem)", "ไฮโปทาลามัส (Hypothalamus)"],
+                answer: "ซีรีเบลลัม (Cerebellum)"
+            },
+            {
+                question: "ต่อมไร้ท่อใดที่ผลิตอินซูลินเพื่อควบคุมระดับน้ำตาลในเลือด?",
+                options: ["ต่อมไทรอยด์", "ต่อมหมวกไต", "ตับอ่อน", "ต่อมใต้สมอง"],
+                answer: "ตับอ่อน"
+            }
+        ];
+
+        let currentQuestions = []; // Array to hold shuffled questions for current game cycle
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let lives = 3; // Initial lives
+        let currentLevel = 1; // Initial level
+        let quizActive = false; // To prevent multiple clicks while checking answer
+        let timerInterval; // Variable to hold the timer interval
+        let timeLeft; // Variable to hold time left for the current question
+        const TIME_PER_QUESTION = 10; // 10 seconds per question
+
+        // Get DOM elements
+        const gameContainer = document.getElementById('game-container');
+        const startScreen = document.getElementById('start-screen');
+        const startButton = document.getElementById('start-button');
+        const quizScreen = document.getElementById('quiz-screen');
+        const levelDisplay = document.getElementById('level-display');
+        const timerDisplay = document.getElementById('timer-display'); // Get timer display element
+        const questionDisplay = document.getElementById('question-display');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const nextButton = document.getElementById('next-button');
+        const resultArea = document.getElementById('result-area');
+        const finalScoreTitle = document.getElementById('final-score-title');
+        const finalScoreText = document.getElementById('final-score-text');
+        const restartButton = document.getElementById('restart-button');
+        const livesDisplay = document.getElementById('lives-display');
+
+        // Initialize Tone.js for sound effects
+        let correctSound;
+        let incorrectSound;
+        let gameOverSound;
+        let timerTickSound; // Sound for timer ticking
+
+        // Await Tone.start() to ensure audio context is ready.
+        // This is necessary because browsers require user interaction to start audio.
+        document.documentElement.addEventListener('click', () => {
+            if (Tone.context.state !== 'running') {
+                Tone.start();
+                console.log('AudioContext started');
+            }
+        });
+
+        // Initialize sound synthesizers
+        correctSound = new Tone.Synth({
+            oscillator: { type: "triangle" },
+            envelope: {
+                attack: 0.005,
+                decay: 0.1,
+                sustain: 0.1,
+                release: 0.2
+            }
+        }).toDestination();
+
+        incorrectSound = new Tone.Synth({
+            oscillator: { type: "sawtooth" },
+            envelope: {
+                attack: 0.01,
+                decay: 0.2,
+                sustain: 0.05,
+                release: 0.3
+            }
+        }).toDestination();
+
+        gameOverSound = new Tone.Synth({
+            oscillator: { type: "sine" },
+            envelope: {
+                attack: 0.1,
+                decay: 0.5,
+                sustain: 0.2,
+                release: 1.0
+            }
+        }).toDestination();
+
+        timerTickSound = new Tone.Synth({ // Simple tick sound
+            oscillator: { type: "square" },
+            envelope: {
+                attack: 0.001,
+                decay: 0.05,
+                sustain: 0.01,
+                release: 0.05
+            }
+        }).toDestination();
+
+
+        // Event Listeners
+        startButton.addEventListener('click', startGame);
+        nextButton.addEventListener('click', loadNextQuestion);
+        restartButton.addEventListener('click', startGame);
+
+        // Helper function to shuffle an array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+            }
+            return array;
+        }
+
+        // Function to start the game
+        function startGame() {
+            currentQuestionIndex = 0;
+            score = 0;
+            lives = 3; // Reset lives
+            currentLevel = 1; // Reset level
+            quizActive = true;
+
+            // Clear any existing timer
+            clearInterval(timerInterval);
+
+            // Prepare questions for the game session by shuffling all available questions
+            currentQuestions = shuffleArray([...allQuestions]); // Create a shallow copy and shuffle
+
+            // Hide start screen, show quiz screen
+            startScreen.classList.add('hidden'); // Hide the start screen
+            quizScreen.classList.remove('hidden'); // Show the quiz screen
+            resultArea.classList.add('hidden'); // Ensure result area is hidden
+            nextButton.classList.add('hidden'); // Hide next button initially
+            feedbackMessage.textContent = ''; // Clear previous feedback
+
+            updateLivesDisplay(); // Update hearts display
+            updateLevelDisplay(); // Update level display
+            loadQuestion();
+        }
+
+        // Function to update the lives display (heart icons)
+        function updateLivesDisplay() {
+            livesDisplay.innerHTML = ''; // Clear existing hearts
+            for (let i = 0; i < 3; i++) {
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                svg.setAttribute("viewBox", "0 0 24 24");
+                svg.classList.add("heart-icon");
+                if (i >= lives) {
+                    svg.classList.add("empty");
+                }
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z");
+                svg.appendChild(path);
+                livesDisplay.appendChild(svg);
+            }
+        }
+
+        // Function to update the level display
+        function updateLevelDisplay() {
+            levelDisplay.textContent = `เลเวล: ${currentLevel}`;
+        }
+
+        // Function to start the question timer
+        function startQuestionTimer() {
+            clearInterval(timerInterval); // Clear any existing timer
+            timeLeft = TIME_PER_QUESTION;
+            timerDisplay.textContent = `เวลา: ${timeLeft}`;
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `เวลา: ${timeLeft}`;
+
+                if (timeLeft <= 3 && timeLeft > 0) { // Play a warning tick for last 3 seconds
+                    timerTickSound.triggerAttackRelease("C4", "32n");
+                }
+
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    // Treat as incorrect answer when time runs out
+                    checkAnswer(null, currentQuestions[currentQuestionIndex].answer); // Pass null for selectedOption
+                }
+            }, 1000);
+        }
+
+        // Function to load a question
+        function loadQuestion() {
+            // If all questions in the current shuffled array are used, reshuffle for infinite levels
+            if (currentQuestionIndex >= currentQuestions.length) {
+                currentQuestions = shuffleArray([...allQuestions]); // Reshuffle all questions
+                currentQuestionIndex = 0; // Reset index for the new set
+            }
+
+            const q = currentQuestions[currentQuestionIndex];
+            questionDisplay.textContent = q.question; // Set question text
+            optionsContainer.innerHTML = ''; // Clear previous options
+            feedbackMessage.textContent = ''; // Clear feedback
+            nextButton.classList.add('hidden'); // Hide next button
+
+            // Create and append option buttons
+            q.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option-button');
+                button.addEventListener('click', () => checkAnswer(option, q.answer));
+                optionsContainer.appendChild(button);
+            });
+
+            // Enable quiz interaction
+            quizActive = true;
+            enableOptions();
+            startQuestionTimer(); // Start the timer for the new question
+        }
+
+        // Function to check the selected answer
+        function checkAnswer(selectedOption, correctAnswer) {
+            if (!quizActive) return; // Prevent multiple clicks
+
+            clearInterval(timerInterval); // Stop the timer when an answer is submitted
+            quizActive = false; // Disable further clicks for this question
+            disableOptions(); // Disable all option buttons
+
+            if (selectedOption === correctAnswer) {
+                score++;
+                feedbackMessage.textContent = 'ถูกต้อง!';
+                feedbackMessage.classList.remove('incorrect');
+                feedbackMessage.classList.add('correct');
+                correctSound.triggerAttackRelease("C5", "8n"); // Play correct sound
+
+                // Increment level on correct answer
+                currentLevel++;
+                updateLevelDisplay();
+
+            } else {
+                lives--; // Decrement life on incorrect answer
+                updateLivesDisplay(); // Update heart display
+                feedbackMessage.textContent = `ผิด! คำตอบที่ถูกต้องคือ: ${correctAnswer}`;
+                feedbackMessage.classList.remove('correct');
+                feedbackMessage.classList.add('incorrect');
+                incorrectSound.triggerAttackRelease("C3", "8n"); // Play incorrect sound
+
+                if (lives <= 0) {
+                    gameOver(); // Game over if no lives left
+                    return; // Stop further execution
+                }
+            }
+            nextButton.classList.remove('hidden'); // Show next button
+        }
+
+        // Function to load the next question
+        function loadNextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        // Function to disable all option buttons
+        function disableOptions() {
+            const buttons = optionsContainer.querySelectorAll('.option-button');
+            buttons.forEach(button => {
+                button.disabled = true;
+                button.style.opacity = '0.7';
+                button.style.cursor = 'not-allowed';
+            });
+        }
+
+        // Function to enable all option buttons
+        function enableOptions() {
+            const buttons = optionsContainer.querySelectorAll('.option-button');
+            buttons.forEach(button => {
+                button.disabled = false;
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
+            });
+        }
+
+        // Function to handle game over
+        function gameOver() {
+            clearInterval(timerInterval); // Ensure timer is stopped on game over
+            quizScreen.classList.add('hidden'); // Hide quiz screen
+            resultArea.classList.remove('hidden'); // Show result area
+            gameOverSound.triggerAttackRelease("C2", "1n"); // Play game over sound
+
+            finalScoreTitle.textContent = 'Game Over!';
+            finalScoreText.textContent = `คุณทำได้ ${score} คะแนน และผ่าน ${currentLevel -1} เลเวล`; // Current level is already incremented for next, so -1 here
+            // Reset level, score, lives for next game is handled in startGame
+        }
+
+
+        // Initial state: show start button, hide quiz and result screens
+        document.addEventListener('DOMContentLoaded', () => {
+            startScreen.classList.remove('hidden'); // Show start screen
+            quizScreen.classList.add('hidden'); // Hide quiz screen
+            resultArea.classList.add('hidden'); // Hide result area
+
+            updateLivesDisplay(); // Initialize heart display
+            updateLevelDisplay(); // Initialize level display
+            timerDisplay.textContent = `เวลา: ${TIME_PER_QUESTION}`; // Set initial timer display
+        });
+
+    </script>
+</body>
+</html>
